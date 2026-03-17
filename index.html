@@ -13,6 +13,16 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/devicon.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+        <!-- Google tag (gtag.js) -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTJ8MHG2RN"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+
+            gtag('config', 'G-NTJ8MHG2RN');
+        </script>
     <script>
         tailwind.config = {
             theme: {
@@ -3321,6 +3331,10 @@
         const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
         const GROQ_MODEL    = 'llama-3.3-70b-versatile'; // fastest + smartest free model on Groq
 
+        // Safe key access (prevents ReferenceError if config.js is missing)
+        const GROQ_KEY = (typeof GROQ_API_KEY !== 'undefined' ? GROQ_API_KEY : '').trim();
+        const HAS_GROQ_KEY = !!(GROQ_KEY && !/^YOUR_/i.test(GROQ_KEY));
+
         // System prompt — gives the model full context about Uzain
 const SYSTEM_PROMPT = `You are 'Uzain's AI Assistant' — a smart sales consultant and technical advisor embedded in Muhammad Uzain Ali Siddiqui's developer portfolio.
 
@@ -3456,11 +3470,16 @@ Key rule: Only recommend what solves the client's STATED problem. If they said "
 
             let reply;
             try {
+                if (!HAS_GROQ_KEY) {
+                    reply = `⚠️ AI is running in demo mode. Configure your Groq API key in config.js to enable live responses.`;
+                    chatHistory.push({ role: 'assistant', content: reply });
+                    return reply;
+                }
                 const res = await fetch(GROQ_ENDPOINT, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${GROQ_API_KEY}`
+                        'Authorization': `Bearer ${GROQ_KEY}`
                     },
                     body: JSON.stringify({
                         model: GROQ_MODEL,
@@ -3483,7 +3502,7 @@ Key rule: Only recommend what solves the client's STATED problem. If they said "
                         || `Hmm, I didn't get a response. Please try again! 🤔`;
 
             } catch (err) {
-                console.error('Grok API error:', err);
+                console.error('Groq API error:', err);
                 reply = `⚠️ Couldn't reach the AI right now (${err.message}). Try again in a moment, or contact Uzain directly via the form below!`;
             }
 
@@ -3862,23 +3881,21 @@ Key rule: Only recommend what solves the client's STATED problem. If they said "
         })();
 
         /* ================================================================
-           GROK AI — shared API helper
+           GROQ AI — shared API helper
            Keys loaded from config.js (gitignored)
         ================================================================ */
-        const GROK_API_KEY = typeof GROQ_API_KEY !== 'undefined' ? GROQ_API_KEY : '';
-
         async function callGrok(systemPrompt, userContent, maxTokens = 220) {
-            if (!GROK_API_KEY) {
+            if (!HAS_GROQ_KEY) {
                 throw new Error('DEMO_MODE');
             }
-            const res = await fetch('https://api.x.ai/v1/chat/completions', {
+            const res = await fetch(GROQ_ENDPOINT, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + GROK_API_KEY
+                    'Authorization': 'Bearer ' + GROQ_KEY
                 },
                 body: JSON.stringify({
-                    model: 'grok-3-beta',
+                    model: GROQ_MODEL,
                     messages: [
                         { role: 'system', content: systemPrompt },
                         { role: 'user',   content: userContent  }
@@ -3887,9 +3904,12 @@ Key rule: Only recommend what solves the client's STATED problem. If they said "
                     temperature: 0.7
                 })
             });
-            if (!res.ok) throw new Error('API_ERROR');
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err?.error?.message || `HTTP ${res.status}`);
+            }
             const data = await res.json();
-            return data.choices[0].message.content.trim();
+            return data?.choices?.[0]?.message?.content?.trim() || '';
         }
 
         /* ── Hero TL;DR Summarizer ── */
@@ -3909,7 +3929,7 @@ Available for remote and on-site senior roles.`;
             heroAiBtn.disabled = true;
             try {
                 let summary;
-                if (!GROK_API_KEY) {
+                if (!HAS_GROQ_KEY) {
                     // Demo fallback when no key configured
                     summary = 'Senior Full Stack & DevOps Engineer — 2.5+ yrs building offline-first EMRs, SaaS platforms, and production CI/CD pipelines with Laravel, Docker & React. Currently @ ZMT Healthcare, open to senior remote roles.';
                 } else {
@@ -3923,7 +3943,7 @@ Available for remote and on-site senior roles.`;
                 tldrBox.classList.add('visible');
                 heroAiLabel.textContent = 'Regenerate Summary';
             } catch (e) {
-                tldrText.textContent = 'Could not reach AI. Check your Grok API key in the source code.';
+                tldrText.textContent = 'Could not reach AI. Check your Groq API key in config.js.';
                 tldrBox.classList.remove('hidden');
                 heroAiLabel.textContent = 'Ask AI — TL;DR';
             }
@@ -3949,14 +3969,14 @@ Available for remote and on-site senior roles.`;
 
             try {
                 let parsed;
-                if (!GROK_API_KEY) {
+                if (!HAS_GROQ_KEY) {
                     // Demo: keyword-based local match
                     const jdLower = jd.toLowerCase();
                     const matched = MY_SKILLS.filter(s => jdLower.includes(s.toLowerCase()));
                     const score   = Math.min(98, Math.round(40 + (matched.length / MY_SKILLS.length) * 60 + Math.random() * 8));
                     parsed = {
                         score: score,
-                        summary: `Based on keyword analysis, Uzain matches ${matched.length} of the key technologies. Strong fit for backend-heavy roles. (Configure Grok API key for full AI analysis.)`,
+                        summary: `Based on keyword analysis, Uzain matches ${matched.length} of the key technologies. Strong fit for backend-heavy roles. (Configure Groq API key for full AI analysis.)`,
                         matched: matched.slice(0, 8),
                         missing: []
                     };
@@ -4001,7 +4021,7 @@ Developer skills: ` + MY_SKILLS.join(', '),
 
                 matcherResult.classList.remove('hidden');
             } catch (e) {
-                document.getElementById('matcher-summary').textContent = 'AI analysis failed. Please try again or configure your Grok API key.';
+                document.getElementById('matcher-summary').textContent = 'AI analysis failed. Please try again or configure your Groq API key.';
                 document.getElementById('matcher-score-badge').textContent = '—';
                 document.getElementById('matcher-skills').innerHTML = '';
                 matcherResult.classList.remove('hidden');
@@ -4608,7 +4628,7 @@ Contact & Availability:
                         method: 'POST',
                         headers: { 
                             'Content-Type': 'application/json', 
-                            'Authorization': `Bearer ${GROQ_API_KEY}` 
+                            'Authorization': `Bearer ${GROQ_KEY}` 
                         },
                         body: JSON.stringify({
                             model: GROQ_MODEL,

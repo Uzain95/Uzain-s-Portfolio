@@ -4,3 +4,7 @@
 
 const GROQ_API_KEY = 'YOUR_GROQ_API_KEY_HERE';
 const MAKE_WEBHOOK = 'YOUR_MAKE_WEBHOOK_URL_HERE';
+
+// Google Analytics (GA4)
+// Example: 'G-ABC123DEF4'
+const GA_MEASUREMENT_ID = 'G-XXXXXXXXXX';
