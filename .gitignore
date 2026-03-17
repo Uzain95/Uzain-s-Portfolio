@@ -1,0 +1,6 @@
+# Sensitive config (API keys)
+config.js
+
+# Environment files
+.env
+.env.*
