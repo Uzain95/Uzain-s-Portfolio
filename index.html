@@ -2741,11 +2741,7 @@
     </div>
 
     <!-- SCRIPTS -->
-    <script
-        src="config.js"
-        onload="window.__UZAIN_CONFIG_LOADED = true"
-        onerror="window.__UZAIN_CONFIG_MISSING = true"
-    ></script>
+    <!-- config.js removed for GitHub Pages: key is now hardcoded below -->
     <script>
         /* ================================================================
            PARTICLE NETWORK
@@ -3338,14 +3334,9 @@
         const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
         const GROQ_MODEL    = 'llama-3.3-70b-versatile'; // fastest + smartest free model on Groq
 
-        // Safe key access (prevents ReferenceError if config.js is missing)
-        const CONFIG_LOADED  = (typeof window !== 'undefined') && !!window.__UZAIN_CONFIG_LOADED;
-        const CONFIG_MISSING = (typeof window !== 'undefined') && !!window.__UZAIN_CONFIG_MISSING;
-
-        const GROQ_KEY = (
-            (typeof GROQ_API_KEY !== 'undefined' ? GROQ_API_KEY : '') ||
-            ((typeof window !== 'undefined' && window.GROQ_API_KEY) ? window.GROQ_API_KEY : '')
-        ).trim();
+        // Hardcoded Groq API key for GitHub Pages (public demo)
+        const GROQ_API_KEY = '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'; // <-- replace with your real key if needed
+        const GROQ_KEY = GROQ_API_KEY.trim();
         const HAS_GROQ_KEY = !!(GROQ_KEY && !/^YOUR_/i.test(GROQ_KEY));
 
         // System prompt — gives the model full context about Uzain
@@ -3484,11 +3475,7 @@ Key rule: Only recommend what solves the client's STATED problem. If they said "
             let reply;
             try {
                 if (!HAS_GROQ_KEY) {
-                    if (CONFIG_MISSING) {
-                        reply = `⚠️ AI is running in demo mode because config.js could not be loaded. If you're on GitHub Pages (or any static host), config.js is usually missing because it's gitignored. Run locally with config.js present, or use a backend/proxy to keep your Groq key secret.`;
-                    } else {
-                        reply = `⚠️ AI is running in demo mode. Configure your Groq API key in config.js to enable live responses.`;
-                    }
+                    reply = `AI key missing. Please hardcode your Groq API key in index.html.`;
                     chatHistory.push({ role: 'assistant', content: reply });
                     return reply;
                 }
