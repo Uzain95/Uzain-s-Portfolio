@@ -2741,7 +2741,11 @@
     </div>
 
     <!-- SCRIPTS -->
-    <script src="config.js"></script>
+    <script
+        src="config.js"
+        onload="window.__UZAIN_CONFIG_LOADED = true"
+        onerror="window.__UZAIN_CONFIG_MISSING = true"
+    ></script>
     <script>
         /* ================================================================
            PARTICLE NETWORK
@@ -3114,6 +3118,9 @@
            AI CHATBOT WIDGET
         ================================================================ */
 
+          // Prevent duplicate chatbot initializers from double-binding events.
+          window.__UZAIN_CHATBOT_BOUND = true;
+
         // ── 1. CHIP BUTTON STYLES (injected once to avoid Tailwind purge) ──
         const chipStyle = document.createElement('style');
         chipStyle.textContent = `
@@ -3332,7 +3339,13 @@
         const GROQ_MODEL    = 'llama-3.3-70b-versatile'; // fastest + smartest free model on Groq
 
         // Safe key access (prevents ReferenceError if config.js is missing)
-        const GROQ_KEY = (typeof GROQ_API_KEY !== 'undefined' ? GROQ_API_KEY : '').trim();
+        const CONFIG_LOADED  = (typeof window !== 'undefined') && !!window.__UZAIN_CONFIG_LOADED;
+        const CONFIG_MISSING = (typeof window !== 'undefined') && !!window.__UZAIN_CONFIG_MISSING;
+
+        const GROQ_KEY = (
+            (typeof GROQ_API_KEY !== 'undefined' ? GROQ_API_KEY : '') ||
+            ((typeof window !== 'undefined' && window.GROQ_API_KEY) ? window.GROQ_API_KEY : '')
+        ).trim();
         const HAS_GROQ_KEY = !!(GROQ_KEY && !/^YOUR_/i.test(GROQ_KEY));
 
         // System prompt — gives the model full context about Uzain
@@ -3471,7 +3484,11 @@ Key rule: Only recommend what solves the client's STATED problem. If they said "
             let reply;
             try {
                 if (!HAS_GROQ_KEY) {
-                    reply = `⚠️ AI is running in demo mode. Configure your Groq API key in config.js to enable live responses.`;
+                    if (CONFIG_MISSING) {
+                        reply = `⚠️ AI is running in demo mode because config.js could not be loaded. If you're on GitHub Pages (or any static host), config.js is usually missing because it's gitignored. Run locally with config.js present, or use a backend/proxy to keep your Groq key secret.`;
+                    } else {
+                        reply = `⚠️ AI is running in demo mode. Configure your Groq API key in config.js to enable live responses.`;
+                    }
                     chatHistory.push({ role: 'assistant', content: reply });
                     return reply;
                 }
@@ -4512,6 +4529,11 @@ Developer skills: ` + MY_SKILLS.join(', '),
            AI CHATBOT WIDGET (WITH AUTONOMOUS SALES AGENT INTERCEPTOR)
         ================================================================ */
         (function initChatbot() {
+            // A second chatbot initializer exists further down in this file.
+            // Skip if the main chatbot already bound event handlers.
+            if (window.__UZAIN_CHATBOT_BOUND) return;
+            window.__UZAIN_CHATBOT_BOUND = true;
+
             // DOM References
             const chatBubble  = document.getElementById('chatbot-bubble');
             const chatWindow  = document.getElementById('chatbot-window');
